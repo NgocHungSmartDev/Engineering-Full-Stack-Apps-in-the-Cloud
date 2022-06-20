@@ -6,6 +6,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
   // Init the Express application
   const app = express();
+  const path = require('path');
 
   // Set the network port
   const port = process.env.PORT || 8082;
@@ -47,27 +48,37 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
     let url = req.query.image_url
 
     // 2. call filterImageFromURL(image_url) to filter the image
-    let result = filterImageFromURL(url)
-
+    await processImage(url)
     // 3. send the resulting file in the response
-    result.then(
+    .then(
       // case sucessfull
       function(value) {
         response.data = value
         res.send(response)
-      },
-      
+      }
+    )
+    .catch(
       // case failed
       function(error) {
         response.msg = error
         response.code = 500
+        response.status = false
         res.send(response)
       }
-    );
-  } );
+    )
 
     // 4. deletes any files on the server on finish of the response
-  
+    // check if upload file sucessfull, can delete file at local
+    if (response.code === 200) {
+      let pathFile = path.resolve(__dirname, "util", "tmp", response.data)
+      deleteLocalFiles([pathFile])
+    }
+
+  });
+
+  async function  processImage(url: string) {
+    return await filterImageFromURL(url);
+  }
 
   // Start the Server
   app.listen( port, () => {
